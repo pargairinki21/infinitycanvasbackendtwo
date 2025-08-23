@@ -1,0 +1,9 @@
+{
+  "name": "device-control-api",
+  "description": "API to control volume, brightness, and camera",
+  "repository": "https://gitlab.com/shreya.varshney/peri_combined.git",
+  "keywords": ["fastapi", "volume", "brightness", "camera", "system-control"],
+  "env": {
+    "PYTHON_VERSION": "3.10"
+  }
+}

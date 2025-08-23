@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pycaw
+comtypes
+screen_brightness_control
+opencv-python

@@ -1,13 +1,33 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-from comtypes import CLSCTX_ALL
-import pythoncom
-import screen_brightness_control as sbc
 import cv2
 import os
+import platform
 from datetime import datetime
+
+# Platform-specific imports
+if platform.system() == "Windows":
+    try:
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        from comtypes import CLSCTX_ALL
+        import pythoncom
+        import screen_brightness_control as sbc
+        WINDOWS_LIBS_AVAILABLE = True
+    except ImportError:
+        AudioUtilities = None
+        IAudioEndpointVolume = None
+        CLSCTX_ALL = None
+        pythoncom = None
+        sbc = None
+        WINDOWS_LIBS_AVAILABLE = False
+else:
+    AudioUtilities = None
+    IAudioEndpointVolume = None
+    CLSCTX_ALL = None
+    pythoncom = None
+    sbc = None
+    WINDOWS_LIBS_AVAILABLE = False
 
 app = FastAPI(title="Device Control API")
 
@@ -33,8 +53,10 @@ app.add_middleware(
 # 🔴 Save path for camera - store in captured_images folder
 SAVE_PATH = "captured_images/captured_image.jpg"
 
-# ��️ VOLUME FUNCTIONS
+# 🔊️ VOLUME FUNCTIONS
 def get_volume_interface():
+    if not WINDOWS_LIBS_AVAILABLE:
+        raise Exception("Volume control not available on this platform")
     pythoncom.CoInitialize()
     devices = AudioUtilities.GetSpeakers()
     interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
@@ -42,7 +64,16 @@ def get_volume_interface():
 
 @app.get("/")
 def root():
-    return {"message": "Device Control API is running", "endpoints": ["/take_picture", "/volume/mute", "/volume/unmute", "/brightness/up", "/brightness/down"]}
+    available_endpoints = ["/take_picture"]
+    if WINDOWS_LIBS_AVAILABLE:
+        available_endpoints.extend(["/volume/up", "/volume/down", "/volume/mute", "/volume/unmute", "/brightness/up", "/brightness/down"])
+    
+    return {
+        "message": "Device Control API is running", 
+        "platform": platform.system(),
+        "windows_features_available": WINDOWS_LIBS_AVAILABLE,
+        "endpoints": available_endpoints
+    }
 
 @app.post("/volume/up")
 def volume_up():
@@ -91,6 +122,8 @@ def unmute():
 def brightness_up():
     """Increase screen brightness by 10%"""
     try:
+        if not WINDOWS_LIBS_AVAILABLE:
+            return JSONResponse(content={"error": "Brightness control not available on this platform"}, status_code=501)
         current = sbc.get_brightness(display=0)[0]
         new_brightness = min(current + 10, 100)
         sbc.set_brightness(new_brightness, display=0)
@@ -102,6 +135,8 @@ def brightness_up():
 def brightness_down():
     """Decrease screen brightness by 10%"""
     try:
+        if not WINDOWS_LIBS_AVAILABLE:
+            return JSONResponse(content={"error": "Brightness control not available on this platform"}, status_code=501)
         current = sbc.get_brightness(display=0)[0]
         new_brightness = max(current - 10, 0)
         sbc.set_brightness(new_brightness, display=0)

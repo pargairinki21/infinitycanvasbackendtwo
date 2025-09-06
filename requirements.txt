@@ -1,6 +1,6 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-opencv-python==4.8.1.78
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+opencv-python-headless>=4.8.1.78
 # Windows-only dependencies (optional)
 pycaw; sys_platform == "win32"
 comtypes; sys_platform == "win32"
